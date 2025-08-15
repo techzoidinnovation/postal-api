@@ -7,6 +7,7 @@ services:
                 WWWGROUP: '${WWWGROUP}'
         image: 'sail-8.4/app'
         restart: unless-stopped
+        network_mode: host
         extra_hosts:
             - 'host.docker.internal:host-gateway'
         environment:
@@ -18,10 +19,4 @@ services:
         volumes:
             - '.:/var/www/html'
             - '../storage:/var/www/html/storage'
-        networks:
-            - sail
         depends_on: {  }
-networks:
-    sail:
-        external: true
-        name: bridge
