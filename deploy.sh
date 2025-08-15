@@ -5,7 +5,6 @@ set -e
 APP_NAME=postal-api
 GIT_REPO=git@github.com:techzoidinnovation/postal-api.git
 BASE_DIR=/home/dreamor/$APP_NAME
-ENV_PATH="$BASE_DIR/config/laravel.env"
 NEW_DIR="$BASE_DIR/new"
 LIVE_DIR="$BASE_DIR/current"
 BACKUP_DIR="$BASE_DIR/backup"
