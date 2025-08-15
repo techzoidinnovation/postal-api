@@ -139,7 +139,7 @@ fi
 
 # make folders writable
 echo "🧰 Running Laravel setup..."
-./vendor/bin/sail root-bash -c "chown -R sail:sail storage bootstrap/cache && chmod -R ug+rwx storage bootstrap/cache resources/lang"
+./vendor/bin/sail root-bash -c "chown -R sail:sail storage bootstrap/cache && chmod -R ug+rwx storage bootstrap/cache"
 ./vendor/bin/sail artisan migrate --force
 ./vendor/bin/sail artisan storage:link || true
 ./vendor/bin/sail artisan optimize
