@@ -2,7 +2,7 @@
 set -e
 
 # === Config ===
-APP_NAME=laravel-app
+APP_NAME=postal-api
 GIT_REPO=git@github.com:techzoidinnovation/clicksenders-app.git
 BASE_DIR=/home/dreamor/$APP_NAME
 ENV_PATH="$BASE_DIR/config/laravel.env"
