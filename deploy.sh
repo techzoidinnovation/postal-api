@@ -78,11 +78,14 @@ services:
     ports: !reset []
 EOF
 
-# === Step 3: Copy vendor and .env to app path ===
-echo "📦 Copying vendor directory..."
-cp -r "$VENDOR_DIR" "$NEW_DIR/vendor"
-echo "📄 Copying .env file..."
-cp "$ENV_PATH" "$NEW_DIR/.env"
+# === Step 3: Run composer install ===
+echo "📦 Running composer install..."
+docker run --rm \
+    -u "$(id -u):$(id -g)" \
+    -v "$NEW_DIR":/var/www/html \
+    -w /var/www/html \
+    laravelsail/php84-composer:latest \
+    composer install --ignore-platform-reqs --no-interaction --no-scripts --no-progress --optimize-autoloader
 
 # === Step 4: Boot Sail ===
 echo "🐳 Bringing up app..."

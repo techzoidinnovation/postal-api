@@ -1,0 +1,27 @@
+name: Deploy to Production
+
+on:
+    push:
+        branches:
+          - main
+
+jobs:
+    deploy:
+        runs-on: ubuntu-latest
+        steps:
+            - name: 📂 Checkout code (optional)
+              uses: actions/checkout@v3
+
+            - name: 🔐 Setup SSH
+              run: |
+                mkdir -p ~/.ssh
+                echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_ed25519
+                chmod 600 ~/.ssh/id_ed25519
+                echo "Host *" > ~/.ssh/config
+                echo "    StrictHostKeyChecking no" >> ~/.ssh/config
+
+            - name: 🚀 Deploy to server
+              run: |
+                chmod +x deploy.sh
+                scp deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/postal-api/deployments/deploy.sh
+                ssh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }} "bash /home/${{ secrets.SSH_USER }}/postal-api/deployments/deploy.sh"
