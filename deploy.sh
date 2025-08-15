@@ -12,6 +12,30 @@ BACKUP_DIR="$BASE_DIR/backup"
 VENDOR_DIR="$BASE_DIR/vendor"
 LOCK_FILE="$BASE_DIR/deployments/deploy.lock"
 LOGS_RETAIN_COUNT=15
+GITHUB_APP_ID=1786117
+GITHUB_PRIVATE_KEY_PATH="$BASE_DIR/config/laravel-deploy-bot-key.pem"
+GITHUB_INSTALLATION_ID=81080819
+
+# Generate a temporary token for GitHub API access
+generate_github_token() {
+    local header=$(echo -n '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local now=$(date +%s)
+    local payload=$(echo -n "{\"iat\":$now,\"exp\":$((now+540)),\"iss\":\"$APP_ID\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local signature=$(printf '%s' "$header.$payload" | openssl dgst -sha256 -sign "$PRIVATE_KEY_PATH" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local jwt="$header.$payload.$signature"
+
+    # ===== EXCHANGE JWT FOR INSTALLATION TOKEN =====
+    local token=$(curl -s -X POST \
+      -H "Authorization: Bearer $jwt" \
+      -H "Accept: application/vnd.github+json" \
+      "https://api.github.com/app/installations/$INSTALLATION_ID/access_tokens" \
+      | jq -r '.token')
+
+    echo "$token"
+}
+
+ACCESS_TOKEN=$(generate_github_token)
+
 
 # Function to clean up lock file on exit
 cleanup() {
@@ -84,6 +108,7 @@ docker run --rm \
     -u "$(id -u):$(id -g)" \
     -v "$NEW_DIR":/var/www/html \
     -w /var/www/html \
+    -e COMPOSER_AUTH='{"github-oauth": {"github.com": "'"$ACCESS_TOKEN"'"}}' \
     laravelsail/php84-composer:latest \
     composer install --ignore-platform-reqs --no-interaction --no-scripts --no-progress --optimize-autoloader
 
