@@ -5,6 +5,7 @@ set -e
 APP_NAME=postal-api
 GIT_REPO=git@github.com:techzoidinnovation/postal-api.git
 BASE_DIR=/home/dreamor/$APP_NAME
+ENV_PATH="$BASE_DIR/config/laravel.env"
 NEW_DIR="$BASE_DIR/new"
 LIVE_DIR="$BASE_DIR/current"
 BACKUP_DIR="$BASE_DIR/backup"
@@ -111,6 +112,9 @@ services:
 EOF
 
 # === Step 3: Run composer install ===
+echo "📄 Copying .env file..."
+cp "$ENV_PATH" "$NEW_DIR/.env"
+
 echo "📦 Running composer install..."
 docker run --rm \
     -u "$(id -u):$(id -g)" \
