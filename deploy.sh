@@ -92,8 +92,10 @@ generate_github_token() {
 echo "🔑 Generating GitHub access token..."
 
 ACCESS_TOKEN=$(generate_github_token)
-
-echo
+if [ -z "$ACCESS_TOKEN" ]; then
+  echo "❌ Failed to generate GitHub access token."
+  exit 1
+fi
 
 # === Step 1: Clone new version ===
 echo "📥 Cloning repo..."
