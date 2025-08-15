@@ -119,7 +119,7 @@ docker run --rm \
     -w /var/www/html \
     -e COMPOSER_AUTH='{"github-oauth": {"github.com": "'"$ACCESS_TOKEN"'"}}' \
     laravelsail/php84-composer:latest \
-    composer install --ignore-platform-reqs --no-interaction --no-scripts --no-progress --optimize-autoloader
+    composer install --ignore-platform-reqs --no-interaction --no-scripts --no-progress --optimize-autoloader --no-cache
 
 # === Step 4: Boot Sail ===
 echo "🐳 Bringing up app..."
