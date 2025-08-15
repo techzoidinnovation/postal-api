@@ -18,9 +18,10 @@ services:
         volumes:
             - '.:/var/www/html'
             - '../storage:/var/www/html/storage'
+            - '../config/laravel.env:/var/www/html/.env'
         networks:
             - sail
         depends_on: {  }
 networks:
     sail:
-        driver: bridge
+        driver: host
