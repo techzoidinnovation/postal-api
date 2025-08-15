@@ -23,5 +23,4 @@ services:
         depends_on: {  }
 networks:
     sail:
-        external: true
-        name: host
+        driver: bridge
