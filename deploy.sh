@@ -16,26 +16,6 @@ GITHUB_APP_ID=1786117
 GITHUB_PRIVATE_KEY_PATH="$BASE_DIR/config/laravel-deploy-bot-key.pem"
 GITHUB_INSTALLATION_ID=81080819
 
-# Generate a temporary token for GitHub API access
-generate_github_token() {
-    local header=$(echo -n '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-    local now=$(date +%s)
-    local payload=$(echo -n "{\"iat\":$now,\"exp\":$((now+540)),\"iss\":\"$APP_ID\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-    local signature=$(printf '%s' "$header.$payload" | openssl dgst -sha256 -sign "$PRIVATE_KEY_PATH" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-    local jwt="$header.$payload.$signature"
-
-    # ===== EXCHANGE JWT FOR INSTALLATION TOKEN =====
-    local token=$(curl -s -X POST \
-      -H "Authorization: Bearer $jwt" \
-      -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/app/installations/$INSTALLATION_ID/access_tokens" \
-      | jq -r '.token')
-
-    echo "$token"
-}
-
-ACCESS_TOKEN=$(generate_github_token)
-
 
 # Function to clean up lock file on exit
 cleanup() {
@@ -87,6 +67,33 @@ rollback() {
 trap rollback ERR
 
 echo "🚀 Starting deployment at $TIMESTAMP"
+
+# Generate a temporary token for GitHub API access
+generate_github_token() {
+    local header=$(echo -n '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local now=$(date +%s)
+    local payload=$(echo -n "{\"iat\":$now,\"exp\":$((now+540)),\"iss\":\"$GITHUB_APP_ID\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local signature=$(printf '%s' "$header.$payload" | openssl dgst -sha256 -sign "$GITHUB_PRIVATE_KEY_PATH" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
+    local jwt="$header.$payload.$signature"
+
+    # ===== EXCHANGE JWT FOR INSTALLATION TOKEN =====
+    local token=$(curl -s -X POST \
+      -H "Authorization: Bearer $jwt" \
+      -H "Accept: application/vnd.github+json" \
+      "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens" \
+      | jq -r '.token')
+
+    echo "$token" || {
+        echo "❌ Failed to generate GitHub access token."
+        exit 1
+    }
+}
+
+echo "🔑 Generating GitHub access token..."
+
+ACCESS_TOKEN=$(generate_github_token)
+
+echo
 
 # === Step 1: Clone new version ===
 echo "📥 Cloning repo..."
