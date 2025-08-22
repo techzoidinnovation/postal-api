@@ -3,7 +3,7 @@ set -e
 
 # === Config ===
 APP_NAME=postal-api
-GIT_REPO=git@github.com:techzoidinnovation/postal-api.git
+GIT_REPO=https://github.com/techzoidinnovation/postal-api.git
 BASE_DIR=/home/dreamor/$APP_NAME
 ENV_PATH="$BASE_DIR/config/laravel.env"
 NEW_DIR="$BASE_DIR/new"
