@@ -23,7 +23,7 @@ jobs:
             - name: 🚀 Deploy to server
               run: |
                 chmod +x deploy.sh
-                scp deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/postal-api/deployments/deploy.sh || {
+                scp -vvv deploy.sh ${{ secrets.SSH_USER }}@${{ secrets.SSH_HOST }}:/home/${{ secrets.SSH_USER }}/postal-api/deployments/deploy.sh || {
                     echo "SCP failed"
                     exit 1
                 }
