@@ -3,7 +3,7 @@ set -e
 
 # === Config ===
 APP_NAME=postal-api
-GIT_REPO=git@github.com:techzoidinnovation/postal-api.git
+GIT_REPO=https://github.com/techzoidinnovation/postal-api.git
 BASE_DIR=/home/dreamor/$APP_NAME
 ENV_PATH="$BASE_DIR/config/laravel.env"
 NEW_DIR="$BASE_DIR/new"
@@ -11,10 +11,6 @@ LIVE_DIR="$BASE_DIR/current"
 BACKUP_DIR="$BASE_DIR/backup"
 LOCK_FILE="$BASE_DIR/deployments/deploy.lock"
 LOGS_RETAIN_COUNT=15
-GITHUB_APP_ID=1786117
-GITHUB_PRIVATE_KEY_PATH="$BASE_DIR/config/laravel-deploy-bot-key.pem"
-GITHUB_INSTALLATION_ID=81080819
-
 
 # Function to clean up lock file on exit
 cleanup() {
@@ -67,38 +63,6 @@ trap rollback ERR
 
 echo "🚀 Starting deployment at $TIMESTAMP"
 
-# Generate a temporary token for GitHub API access
-generate_github_token() {
-    local header=$(echo -n '{"alg":"RS256","typ":"JWT"}' | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-    local now=$(date +%s)
-    local payload=$(echo -n "{\"iat\":$now,\"exp\":$((now+540)),\"iss\":\"$GITHUB_APP_ID\"}" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-    local signature=$(printf '%s' "$header.$payload" | openssl dgst -sha256 -sign "$GITHUB_PRIVATE_KEY_PATH" | openssl base64 -e -A | tr '+/' '-_' | tr -d '=')
-    local jwt="$header.$payload.$signature"
-
-    # ===== EXCHANGE JWT FOR INSTALLATION TOKEN =====
-    local response=$(curl -s -X POST \
-            -H "Authorization: Bearer $jwt" \
-            -H "Accept: application/vnd.github+json" \
-            "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens")
-
-    # Extract token
-    local token=$(echo "$response" | jq -r '.token')
-
-    if [ -z "$token" ] || [ "$token" = "null" ]; then
-        error_message=$(echo "$response" | jq -r '.message // "Unknown error"')
-        echo "❌ Failed to generate GitHub access token: $error_message"
-        exit 1
-    fi
-}
-
-echo "🔑 Generating GitHub access token..."
-
-ACCESS_TOKEN=$(generate_github_token)
-if [ -z "$ACCESS_TOKEN" ]; then
-  echo "❌ Failed to generate GitHub access token."
-  exit 1
-fi
-
 # === Step 1: Clone new version ===
 echo "📥 Cloning repo..."
 rm -rf "$NEW_DIR"
@@ -122,7 +86,6 @@ docker run --rm \
     -u "$(id -u):$(id -g)" \
     -v "$NEW_DIR":/var/www/html \
     -w /var/www/html \
-    -e COMPOSER_AUTH='{"github-oauth": {"github.com": "'"$ACCESS_TOKEN"'"}}' \
     laravelsail/php84-composer:latest \
     composer install --ignore-platform-reqs --no-interaction --no-scripts --no-progress --optimize-autoloader --no-cache
 
