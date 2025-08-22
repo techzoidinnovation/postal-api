@@ -3,6 +3,7 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Models\Credential;
 use App\Models\Domain;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -10,15 +11,26 @@ use Illuminate\Support\Str;
 
 class DomainController extends Controller
 {
-    public function index(Request $request)
+    public function index(Request $request): JsonResponse
     {
         // Logic to handle the request and return a response
         // For example, fetching domains from the database
-        $domains = \App\Models\Domain::all();
+        $request->validate([
+            'key' => 'required|exists:postal_mysql.credentials,key',
+        ]);
+
+        try {
+            $server = $this->getServerFromCredential($request->key);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ])->setStatusCode(400);
+        }
 
         return response()->json([
             'success' => true,
-            'data' => $domains,
+            'data' => $server->domains,
             'message' => 'Domains retrieved successfully.'
         ])->setStatusCode(200);
     }
@@ -43,16 +55,25 @@ class DomainController extends Controller
         ])->setStatusCode(200);
     }
 
-    public function create(Request $request)
+    public function create(Request $request): JsonResponse
     {
         // Logic to create a new domain
         $data = $request->validate([
             'name' => 'required|unique:postal_mysql.domains,name',
-            'owner_id' => 'required|exists:postal_mysql.servers,id',
+            'key' => 'required|exists:postal_mysql.credentials,key',
         ], [
             'name.required' => 'The domain name is required.',
             'name.unique' => 'The domain name already exists.'
         ]);
+
+        try {
+            $server = $this->getServerFromCredential($data['key']);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => $e->getMessage()
+            ])->setStatusCode(400);
+        }
 
         $domain = $data['name'];
 
@@ -75,7 +96,7 @@ class DomainController extends Controller
             'outgoing' => 1,
             'incoming' => 1,
             'owner_type' => 'Server',
-            'owner_id' => $data['owner_id'],
+            'owner_id' => $server->id,
             'dkim_identifier_string' => $dkimSelector,
             'verified_at' => now(),
         ]);
@@ -193,5 +214,22 @@ class DomainController extends Controller
             'name' => "postal-" . $selector . "._domainkey." . $domain->name,
             'value' => $dkimRecordValue,
         ];
+    }
+
+    protected function getServerFromCredential(string $key): ?\App\Models\Server
+    {
+        $credential = Credential::whereRaw('BINARY `key` = ?', [$key])
+            ->where('hold', 0)
+            ->first();
+
+        if (!$credential) {
+            throw new \Exception("Invalid or expired credential key.");
+        }
+
+        if (!$credential->server) {
+            throw new \Exception("Server not found for the provided key.");
+        }
+
+        return $credential->server;
     }
 }
