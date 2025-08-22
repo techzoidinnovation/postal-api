@@ -77,16 +77,19 @@ generate_github_token() {
     local jwt="$header.$payload.$signature"
 
     # ===== EXCHANGE JWT FOR INSTALLATION TOKEN =====
-    local token=$(curl -s -X POST \
-      -H "Authorization: Bearer $jwt" \
-      -H "Accept: application/vnd.github+json" \
-      "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens" \
-      | jq -r '.token')
+    local response=$(curl -s -X POST \
+            -H "Authorization: Bearer $jwt" \
+            -H "Accept: application/vnd.github+json" \
+            "https://api.github.com/app/installations/$GITHUB_INSTALLATION_ID/access_tokens")
 
-    echo "$token" || {
-        echo "❌ Failed to generate GitHub access token."
+    # Extract token
+    local token=$(echo "$response" | jq -r '.token')
+
+    if [ -z "$token" ] || [ "$token" = "null" ]; then
+        error_message=$(echo "$response" | jq -r '.message // "Unknown error"')
+        echo "❌ Failed to generate GitHub access token: $error_message"
         exit 1
-    }
+    fi
 }
 
 echo "🔑 Generating GitHub access token..."
